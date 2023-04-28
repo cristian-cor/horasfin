@@ -3,61 +3,43 @@ import {
 	CreateOptions,
 	CreationAttributes,
 	FindOptions,
-	fn,
-	InferAttributes,
-	InferCreationAttributes,
 	Model,
 	ModelStatic,
-	Op,
 	UpdateOptions,
 } from "sequelize";
 import { Col, Fn, Literal } from "sequelize/types/utils";
 import { merge } from "./merge";
 
-export type updateData<T extends Model<InferAttributes<T>, InferCreationAttributes<T>>> = {
+export type updateData<R, C, T extends Model<R, C>> = {
 	[key in keyof Attributes<T>]?: Attributes<T>[key] | Fn | Col | Literal;
 };
 
-export class Service<T extends Model<InferAttributes<T>, InferCreationAttributes<T>>> {
+export class Service<R, C, T extends Model<R, C>> {
 	protected deletedField = "deleted_at";
-	protected raw: boolean = false;
+	protected optionsDefault: FindOptions<T>;
 
-	getOptionsDefault(): FindOptions<T> {
-		return {
-			where: {
-				[Op.or]: [
-					{ [this.deletedField]: "1969-12-31 23:59:59.000000 +00:00" },
-					{ [this.deletedField]: { [Op.gt]: fn("now") } },
-				],
-			},
-		} as any;
+	constructor(protected model: ModelStatic<T>) {
+		const deleteDate: any = { [this.deletedField]: null };
+		this.optionsDefault = { where: { ...deleteDate }, raw: false };
 	}
-
-	constructor(protected model: ModelStatic<T>) {}
 
 	create(data: CreationAttributes<T>, options?: CreateOptions<Attributes<T>>) {
 		return this.model.create(data, options);
 	}
 
 	count(options?: FindOptions<T>) {
-		return this.model.findAll(merge(options, this.getOptionsDefault())).then((rows) => rows.length);
+		return this.model.count(merge({}, this.optionsDefault, options) as any);
 	}
 
 	findAll(options?: FindOptions<T>) {
-		return this.model.findAll(merge(options, this.getOptionsDefault()));
+		return this.model.findAll(merge({}, this.optionsDefault, options) as any);
 	}
 
 	findOneById(id: number, options?: FindOptions<T>) {
-		return this.model.findOne(merge({ where: { id } }, options, this.getOptionsDefault()));
-	}
-	findOneByIdCode(code: string, options?: FindOptions<T>) {
-		return this.model.findOne(merge({ where: { activation_code: code } }, options, this.getOptionsDefault()));
+		return this.model.findOne(merge({ where: { id } } as any, this.optionsDefault, options) as any);
 	}
 
-	findOneBy(id_unidrogas: string, options?: FindOptions<T>) {
-		return this.model.findOne(merge({ where: { id_unidrogas } }, options, this.getOptionsDefault()));
-	}
-	update(data: updateData<T>, options: Omit<UpdateOptions<Attributes<T>>, "returning">): Promise<T[]> {
+	update(data: updateData<R, C, T>, options: Omit<UpdateOptions<Attributes<T>>, "returning">): Promise<T[]> {
 		return this.model
 			.update<T>(data, {
 				...options,
@@ -66,15 +48,9 @@ export class Service<T extends Model<InferAttributes<T>, InferCreationAttributes
 			.then(([, rows]) => rows);
 	}
 
-	remove(id: number, options?: Omit<UpdateOptions<Attributes<T>>, "returning">) {
+	remove(id: number, options?: Omit<UpdateOptions<Attributes<T>>, "returning">): Promise<T[]> {
 		const deleteDate: any = { [this.deletedField]: new Date() };
 		const where: any = { id };
 		return this.update(deleteDate, merge({ where: { ...where } }, options));
-	}
-
-	delete(id: number, options?: Omit<UpdateOptions<Attributes<T>>, "returning">) {
-		const deleteDate: any = { [this.deletedField]: new Date() };
-		const where: any = { id };
-		return this.remove(deleteDate, merge({ where: { ...where } }, options));
 	}
 }

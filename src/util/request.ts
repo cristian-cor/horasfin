@@ -7,5 +7,5 @@ export interface Request<M = any> extends ERequest {
 	sort?: string[][];
 	queryAbilities?: WhereOptions<M>;
 	queryClient?: WhereOptions<M>;
-	user?: IUserRead;
+	user?: IUserRead | undefined;
 }

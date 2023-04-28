@@ -1,37 +1,77 @@
-import { CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model } from "sequelize";
-import {initModel} from "../../util/initModel";
+import {DataTypes, Model} from "sequelize";
+import {IUserRead} from "../dto/user-read.dto";
+import {IUserCreate} from "../dto/user-create.dto";
+import {sequelize} from "../../sequelize";
 
-export class UserModel extends Model<InferAttributes<UserModel>, InferCreationAttributes<UserModel>> {
-    public static readonly tableName: string = "users";
-
-    declare id: CreationOptional<number>;
+export class UserModel
+    extends Model<IUserRead, IUserCreate>
+    implements IUserRead
+{
+    declare id: number;
     declare document_type: string;
-    declare first_name: boolean;
+    declare first_name: string;
     declare last_name: string;
     declare email: string;
     declare password: string;
     declare identification_number: string;
-    declare created_at: CreationOptional<Date>;
-    declare updated_at: CreationOptional<Date>;
-    declare deleted_at: CreationOptional<Date>;
+    declare created_at: Date;
+    declare updated_at: Date;
+    declare deleted_at: Date;
+    declare mobile: number;
 }
-initModel(UserModel, {
-    document_type: {
-        type: DataTypes.STRING(255),
+
+UserModel.init(
+    {
+        id: {
+            type: DataTypes.BIGINT,
+            autoIncrement: true,
+            primaryKey: true,
+            unique: true,
+        },
+        document_type: {
+            type: DataTypes.STRING(255),
+            allowNull: false,
+            unique: true,
+        },
+        first_name: {
+            type: DataTypes.STRING(255),
+            allowNull: false,
+        },
+        last_name: {
+            type: DataTypes.STRING(255),
+            allowNull: false,
+        },
+        email: {
+            type: DataTypes.STRING(255),
+            allowNull: false,
+        },
+        deleted_at: {
+            type: DataTypes.DATE,
+        },
+        updated_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+        },
+        created_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+        },
+        password: {
+            type: DataTypes.STRING(255),
+            allowNull: false,
+        },
+        identification_number: {
+            type: DataTypes.STRING(255),
+            allowNull: false,
+        },
     },
-    first_name: {
-        type: DataTypes.STRING(255),
-    },
-    last_name: {
-        type: DataTypes.STRING(255),
-    },
-    email: {
-        type: DataTypes.STRING(255),
-    },
-    password: {
-        type: DataTypes.DATE,
-    },
-    identification_number: {
-        type: DataTypes.STRING(255),
-    },
-});
+    {
+        sequelize,
+        tableName: "users",
+        timestamps: true,
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+    }
+);
+
+UserModel.sync({ alter: true }).then();
